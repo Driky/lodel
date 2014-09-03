@@ -2,6 +2,9 @@
 
 class LodelSql
 {
+    
+    private $propList = array();
+    private $dbList = array();
     public $debug = false;
     public $database;
     public $memcachecompress = false;
@@ -18,10 +21,12 @@ class LodelSql
     public $_errorMsg;
 
 
-    public function __construct(String $dbDriver) {
+    public function __construct($dbDriver) {
         
-        $this->connectionObject = ADONewConnection($dbDriver);
-        
+        $this->dbList['write'] = ADONewConnection($dbDriver);
+        $this->dbList['read'] = ADONewConnection($dbDriver);
+        $this->connectionObject = &$this->dbList['write'];
+        $this->connectionObjectReadOnly = &$this->dbList['read'];
         $this->memcachecompress = &$this->connectionObject->memcachecompress;
         $this->memcachehost = &$this->connectionObject->memcachehost;
         $this->memcacheport = &$this->connectionObject->memcacheport;
@@ -29,19 +34,63 @@ class LodelSql
         $this->_connectionID = &$this->connectionObject->_connectionID;
         $this->fetchMode = &$this->connectionObject->fetchMode;
         $this->hasInsertID = &$this->connectionObject->hasInsertID;
-        $this->insertid = &$this->connectionObject->inserti;
+        $this->insertid = &$this->connectionObject->insertid;
         $this->nameQuote = &$this->connectionObject->nameQuote;
         $this->_errorMsg = &$this->connectionObject->_errorMsg;
         $this->database = &$this->connectionObject->database;
         $this->debug = &$this->connectionObject->debug;
-        /*$this->databaseType = &$this->connectionObject->databaseType;
-        $this->databaseType = &$this->connectionObject->databaseType;
-        $this->databaseType = &$this->connectionObject->databaseType;
-        $this->databaseType = &$this->connectionObject->databaseType;
-        $this->databaseType = &$this->connectionObject->databaseType;
-        $this->databaseType = &$this->connectionObject->databaseType;
-        $this->databaseType = &$this->connectionObject->databaseType;*/
         
+        $this->setPropList();
+        
+    }
+    
+    private function setPropList(){
+        
+        $i=0;
+        foreach ($this->dbList as $dbConnect) {
+            $this->propList["memcachecompress".$i] = &$this->connectionObject->memcachecompress;
+            $this->propList["memcachehost".$i] = &$this->connectionObject->memcachehost;
+            $this->propList["memcacheport".$i] = &$this->connectionObject->memcacheport;
+            $this->propList["memcache".$i] = &$this->connectionObject->memcache;
+            $this->propList["_connectionID".$i] = &$this->connectionObject->_connectionID;
+            $this->propList["fetchMode".$i] = &$this->connectionObject->fetchMode;
+            $this->propList["hasInsertID".$i] = &$this->connectionObject->hasInsertID;
+            $this->propList["insertid".$i] = &$this->connectionObject->insertid;
+            $this->propList["nameQuote".$i] = &$this->connectionObject->nameQuote;
+            $this->propList["_errorMsg".$i] = &$this->connectionObject->_errorMsg;
+            $this->propList["database".$i] = &$this->connectionObject->database;
+            $this->propList["debug".$i] = &$this->connectionObject->debug;
+            $i++;
+        }
+
+        foreach ($this->dbList as $dbConnect) {
+            $this->propList["memcachecompress".$i] = &$this->connectionObject->memcachecompress;
+            $this->propList["memcachehost".$i] = &$this->connectionObject->memcachehost;
+            $this->propList["memcacheport".$i] = &$this->connectionObject->memcacheport;
+            $this->propList["memcache".$i] = &$this->connectionObject->memcache;
+            $this->propList["_connectionID".$i] = &$this->connectionObject->_connectionID;
+            $this->propList["fetchMode".$i] = &$this->connectionObject->fetchMode;
+            $this->propList["hasInsertID".$i] = &$this->connectionObject->hasInsertID;
+            $this->propList["insertid".$i] = &$this->connectionObject->insertid;
+            $this->propList["nameQuote".$i] = &$this->connectionObject->nameQuote;
+            $this->propList["_errorMsg".$i] = &$this->connectionObject->_errorMsg;
+            $this->propList["database".$i] = &$this->connectionObject->database;
+            $this->propList["debug".$i] = &$this->connectionObject->debug;
+            $i++;
+        }
+    }
+    
+    public function __set($name, $value)
+    { 
+        if(in_array($name, $propList)){
+            
+        }
+        
+        echo "Définition de '$name' à la valeur '$value'<br/>";
+        
+        for ($i = 0; $i <= count($this->dbList['read']) + count($this->dbList['write']); $i++) {
+            $this->propList[$name.$i] = $value;
+        }
     }
     
     public function Affected_Rows() {
@@ -52,12 +101,12 @@ class LodelSql
         return $this->connectionObject->CacheExecute($secs2cache,$sql,$inputarr);
     }
     
-    public function CacheFlush($sql,$inputarr) {
-        return $this->connectionObject->cacheflush($sql=false,$inputarr=false);
+    public function CacheFlush($sql=false,$inputarr=false) {
+        return $this->connectionObject->cacheflush($sql,$inputarr);
     }
     
-    public function cachegetone($secs2cache,$sql=false,$inputarr=false) {
-
+    public function CacheGetOne($secs2cache,$sql=false,$inputarr=false) {
+        return $this->connectionObject->CacheGetOne($secs2cache,$sql,$inputarr);
     }
     public function connect($argHostname = "", $argUsername = "", $argPassword = "", $argDatabaseName = "", $forceNew = false) {
         return $this->connectionObject->connect($argHostname, $argUsername, $argPassword, $argDatabaseName);
@@ -142,8 +191,8 @@ class LodelSql
         return $this->connectionObject->Param($name,$type);
     }
     
-    public function Parameter(&$stmt,&$var,$name,$isOutput=false,$maxLen=4000,$type=false){
-        return $this->connectionObject->Parameter(&$stmt,&$var,$name,$isOutput,$maxLen,$type);
+    public function Parameter($stmt,$var,$name,$isOutput=false,$maxLen=4000,$type=false){
+        return $this->connectionObject->Parameter($stmt,$var,$name,$isOutput,$maxLen,$type);
     }
     
     public function qstr($s,$magic_quotes=false) {
