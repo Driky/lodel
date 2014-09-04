@@ -5,6 +5,7 @@ class LodelSql
     
     private $propList = array();
     private $dbList = array();
+    
     public $debug = false;
     public $database;
     public $memcachecompress = false;
@@ -12,6 +13,7 @@ class LodelSql
     public $memcacheport;
     public $memcache;
     public $connectionObject;
+    public $connectionObjectReadOnly;
     public $_connectionID;
     public $databaseType;
     public $fetchMode;
@@ -92,24 +94,56 @@ class LodelSql
             $this->propList[$name.$i] = $value;
         }
     }
+    /**
+     * Vérifie le type d'opération de la chaine sql
+     * @param String $sql
+     * @return boolean true si le sql est une opération d'écriture
+     */
+    private function sqlIsWrite(&$sql){
+        
+        return true;
+    }
     
+    
+    
+    /**
+     * Utilise la db avec autorisation en écriture (se sont les row affecter par un update ou delete) 
+     * @return # rows affected by UPDATE/DELETE
+     */ 
     public function Affected_Rows() {
         return $this->connectionObject->Affected_Rows();
     }
     
+    
     public function CacheExecute($secs2cache,$sql=false,$inputarr=false){
-        return $this->connectionObject->CacheExecute($secs2cache,$sql,$inputarr);
+        if($this->sqlIsWrite($sql)){
+            return $this->connectionObject->CacheExecute($secs2cache,$sql,$inputarr);
+        } else {
+            return $this->connectionObjectReadOnly->CacheExecute($secs2cache,$sql,$inputarr);
+        }
+        
     }
     
     public function CacheFlush($sql=false,$inputarr=false) {
-        return $this->connectionObject->cacheflush($sql,$inputarr);
+        if($this->sqlIsWrite($sql)){
+            return $this->connectionObject->cacheflush($sql,$inputarr);
+        } else {
+            return $this->connectionObjectReadOnly->cacheflush($sql,$inputarr);
+        }     
     }
     
     public function CacheGetOne($secs2cache,$sql=false,$inputarr=false) {
-        return $this->connectionObject->CacheGetOne($secs2cache,$sql,$inputarr);
+        if($this->sqlIsWrite($sql)){
+            return $this->connectionObject->CacheGetOne($secs2cache,$sql,$inputarr);
+        } else {
+            return $this->connectionObjectReadOnly->CacheGetOne($secs2cache,$sql,$inputarr);
+        }
     }
+    
     public function connect($argHostname = "", $argUsername = "", $argPassword = "", $argDatabaseName = "", $forceNew = false) {
-        return $this->connectionObject->connect($argHostname, $argUsername, $argPassword, $argDatabaseName);
+        $this->connectionObject->connect($argHostname, $argUsername, $argPassword, $argDatabaseName);
+        $this->connectionObjectReadOnly->connect($argHostname, $argUsername, $argPassword, $argDatabaseName);
+        return 
     }
     
     function Concat(){
